@@ -1,0 +1,7 @@
+name: Maze
+version: '${project.version}'
+main: me.aroze.maze.Maze
+api-version: 1.19
+authors: [Aroze]
+description: A plugin that generates mazes for you
+website: aroze.me
