@@ -1,17 +1,14 @@
-package me.aroze.maze;
+package me.aroze.maze
 
-import org.bukkit.plugin.java.JavaPlugin;
+import me.aroze.maze.command.TestGenerateCommand
+import org.bukkit.plugin.java.JavaPlugin
 
-public final class Maze extends JavaPlugin {
-
-    @Override
-    public void onEnable() {
-        // Plugin startup logic
-
+class Maze : JavaPlugin() {
+    override fun onEnable() {
+        getCommand("testgenerate")!!.setExecutor(TestGenerateCommand)
     }
 
-    @Override
-    public void onDisable() {
+    override fun onDisable() {
         // Plugin shutdown logic
     }
 }
