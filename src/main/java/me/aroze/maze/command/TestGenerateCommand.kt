@@ -19,124 +19,62 @@ object TestGenerateCommand : CommandExecutor {
         val sizeX = args[0].toInt()
         val sizeZ = args[1].toInt()
 
-        generateFrame(startLoc, sizeX, sizeZ)
-        generateCorrectPath(startLoc, sizeX, sizeZ)
+        generateMaze(sizeX, sizeZ, startLoc)
 
         return true
 
     }
 
-    private fun generateFrame(startLoc: Location, sizeX: Int, sizeZ: Int) {
+    fun generateMaze(sizeX: Int, sizeZ: Int, startLoc: Location) {
 
-        val world = startLoc.world ?: return
+        val world = startLoc.world!!
+        val matrix = Array(sizeX) { Array(sizeZ) { false } }
+        val stack = mutableListOf<Pair<Int, Int>>()
 
-        startLoc.block.type = Material.LIME_CONCRETE
+        var currentX = 0
+        var currentZ = 0
 
-        val borderStart = startLoc.clone().subtract(1.0, 0.0,1.0)
+        matrix[currentX][currentZ] = true
+        stack.add(Pair(currentX, currentZ))
 
-        for (x in borderStart.blockX .. borderStart.blockX + sizeX) {
-            world.getBlockAt(x, borderStart.blockY, borderStart.blockZ).type = Material.PINK_CONCRETE
-            world.getBlockAt(x, borderStart.blockY, borderStart.blockZ + sizeZ).type = Material.PINK_CONCRETE
+            while (stack.isNotEmpty()) {
+
+                val neighbors = mutableListOf<Pair<Int, Int>>()
+                if (currentX > 0 && !matrix[currentX - 2][currentZ]) neighbors.add(Pair(currentX - 2, currentZ))
+                if (currentX < sizeX - 2 && !matrix[currentX + 2][currentZ]) neighbors.add(Pair(currentX + 2, currentZ))
+                if (currentZ > 0 && !matrix[currentX][currentZ - 2]) neighbors.add(Pair(currentX, currentZ - 2))
+                if (currentZ < sizeZ - 2 && !matrix[currentX][currentZ + 2]) neighbors.add(Pair(currentX, currentZ + 2))
+
+                if (neighbors.isNotEmpty()) {
+
+                    for (neighbor in neighbors) {
+                    }
+
+                    val next = neighbors.random()
+                    val middle = getMiddleBlock(currentX, currentZ, next.first, next.second)
+
+                    currentX = next.first
+                    currentZ = next.second
+
+                    matrix[currentX][currentZ] = true
+                    stack.add(Pair(currentX, currentZ))
+
+                    world.getBlockAt(startLoc.clone().add(middle.first.toDouble(), 0.0, middle.second.toDouble())).type = Material.WHITE_CONCRETE
+                    world.getBlockAt(startLoc.clone().add(currentX.toDouble(), 0.0, currentZ.toDouble())).type = Material.WHITE_CONCRETE
+                } else {
+                    val last = stack.removeAt(stack.size - 1)
+                    currentX = last.first
+                    currentZ = last.second
+                }
+
+            }
+
         }
 
-        for (z in borderStart.blockZ .. borderStart.blockZ + sizeZ) {
-            world.getBlockAt(borderStart.blockX, borderStart.blockY, z).type = Material.PINK_CONCRETE
-            world.getBlockAt(borderStart.blockX + sizeX, borderStart.blockY, z).type = Material.PINK_CONCRETE
-        }
-
-    }
-
-    private fun generateCorrectPath(startLoc: Location, sizeX: Int, sizeZ: Int) {
-        val world = startLoc.world ?: return
-
-        var direction = 0 // 0:X | 1:Z, 2:-X, 3:-Z
-        var lastDirection = 0
-
-        val endLoc = startLoc.clone().add(sizeX - 2.0, 0.0, sizeZ - 2.0)
-        val deltaX = endLoc.blockX - startLoc.blockX
-        val deltaZ = endLoc.blockZ - startLoc.blockZ
-
-        var location = startLoc.clone()
-        var lastLocation = startLoc.clone()
-
-        //while (location != endLoc) {
-        for (n in 0 .. 10) {
-                delay({
-                lastLocation = location
-                lastDirection = direction
-
-                val new = getNewPosition(location, direction)
-                location = new.first
-                direction = new.second
-
-                location.block.type = Material.WHITE_CONCRETE
-
-                delay({
-                    makeWalls(lastLocation)
-                }, (20 * n) + 10)
-
-                //makeWalls(lastLocation)
-                //Bukkit.broadcastMessage("${location.blockX}, ${location.blockY}, ${location.blockZ}")
-                Bukkit.broadcastMessage("$direction")
-            }, 20 * n)
-        }
-
-        endLoc.block.type = Material.LIME_CONCRETE
-
-    }
-
-    private fun Int.flip(): Int {
-        return if (this == 0) 1 else 0
-    }
-
-        private fun getAvailableDirections(location: Location) : MutableList<Int> {
-
-        val world = location.getWorld()!!;
-        val availableDirections = mutableListOf<Int>()
-
-        val loc0 = location.clone().add(1.0, 0.0, 0.0)
-        val loc1 = location.clone().add(0.0, 0.0, 1.0)
-        val loc2 = location.clone().add(-1.0, 0.0, 0.0)
-        val loc3 = location.clone().add(0.0, 0.0, -1.0)
-        if (world.getBlockAt(loc0).type.isAir) availableDirections.add(0)
-        if (world.getBlockAt(loc1).type.isAir) availableDirections.add(1)
-        if (world.getBlockAt(loc2).type.isAir) availableDirections.add(2)
-        if (world.getBlockAt(loc3).type.isAir) availableDirections.add(3)
-
-        return availableDirections
-
-    }
-
-    private fun getLocationInDirection(location: Location, direction: Int) : Location {
-        return when (direction) {
-            0 -> location.clone().add(1.0, 0.0, 0.0)
-            1 -> location.clone().add(0.0, 0.0, 1.0)
-            2 -> location.clone().add(-1.0, 0.0, 0.0)
-            3 -> location.clone().add(0.0, 0.0, -1.0)
-            else -> location // this should never happen
-        }
-    }
-
-    private fun getNewDirection(currentLoc: Location, currentDirection: Int): Int {
-        val availableDirections = getAvailableDirections(currentLoc)
-        if (availableDirections.size > 1) availableDirections.remove(currentDirection)
-        return if (availableDirections.contains(currentDirection) && Math.random() > 0.3) currentDirection else availableDirections.random()
-    }
-
-    private fun getNewPosition(currentLoc: Location, currentDirection: Int) : Pair<Location, Int> {
-        val newDirection = getNewDirection(currentLoc, currentDirection)
-        val newLocation = getLocationInDirection(currentLoc, newDirection)
-        return Pair(newLocation, newDirection)
-    }
-
-    private fun makeWalls(location: Location) {
-        Bukkit.broadcastMessage("${location.blockX}, ${location.blockY}, ${location.blockZ}")
-        val world = location.world ?: return
-        val availableDirections = getAvailableDirections(location)
-        for (direction in availableDirections) {
-            val newLoc = getLocationInDirection(location, direction)
-            world.getBlockAt(newLoc.clone().subtract(0.0,0.0,0.0)).type = Material.RED_CONCRETE
-        }
+    fun getMiddleBlock(x1: Int, z1: Int, x2: Int, z2: Int): Pair<Int, Int> {
+        val x = (x1 + x2) / 2
+        val z = (z1 + z2) / 2
+        return Pair(x, z)
     }
 
 }
