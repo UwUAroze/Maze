@@ -1,5 +1,7 @@
 package me.aroze.maze.command
 
+import me.aroze.maze.util.delay
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.command.Command
@@ -59,14 +61,24 @@ object TestGenerateCommand : CommandExecutor {
 
         //while (location != endLoc) {
         for (n in 0 .. 10) {
-            lastLocation = location
-            lastDirection = direction
+                delay({
+                lastLocation = location
+                lastDirection = direction
 
-            val new = getNewPosition(location, direction)
-            location = new.first
-            direction = new.second
+                val new = getNewPosition(location, direction)
+                location = new.first
+                direction = new.second
 
-            makeWalls(lastLocation)
+                location.block.type = Material.WHITE_CONCRETE
+
+                delay({
+                    makeWalls(lastLocation)
+                }, (20 * n) + 10)
+
+                //makeWalls(lastLocation)
+                //Bukkit.broadcastMessage("${location.blockX}, ${location.blockY}, ${location.blockZ}")
+                Bukkit.broadcastMessage("$direction")
+            }, 20 * n)
         }
 
         endLoc.block.type = Material.LIME_CONCRETE
@@ -118,11 +130,12 @@ object TestGenerateCommand : CommandExecutor {
     }
 
     private fun makeWalls(location: Location) {
+        Bukkit.broadcastMessage("${location.blockX}, ${location.blockY}, ${location.blockZ}")
         val world = location.world ?: return
         val availableDirections = getAvailableDirections(location)
         for (direction in availableDirections) {
             val newLoc = getLocationInDirection(location, direction)
-            world.getBlockAt(newLoc).type = Material.RED_CONCRETE
+            world.getBlockAt(newLoc.clone().subtract(0.0,0.0,0.0)).type = Material.RED_CONCRETE
         }
     }
 
