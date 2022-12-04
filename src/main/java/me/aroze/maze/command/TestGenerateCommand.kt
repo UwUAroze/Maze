@@ -1,6 +1,5 @@
 package me.aroze.maze.command
 
-import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.command.Command
@@ -49,20 +48,25 @@ object TestGenerateCommand : CommandExecutor {
         val world = startLoc.world ?: return
 
         var direction = 0 // 0:X | 1:Z, 2:-X, 3:-Z
+        var lastDirection = 0
 
         val endLoc = startLoc.clone().add(sizeX - 2.0, 0.0, sizeZ - 2.0)
         val deltaX = endLoc.blockX - startLoc.blockX
         val deltaZ = endLoc.blockZ - startLoc.blockZ
 
-        var currentLoc = startLoc.clone()
-        var lastLoc = startLoc.clone()
-        var lastDirection = 0
+        var location = startLoc.clone()
+        var lastLocation = startLoc.clone()
 
-        while (currentLoc != endLoc) {
-            direction = getNewDirection(currentLoc, direction)
-            lastLoc = currentLoc
+        //while (location != endLoc) {
+        for (n in 0 .. 10) {
+            lastLocation = location
+            lastDirection = direction
 
+            val new = getNewPosition(location, direction)
+            location = new.first
+            direction = new.second
 
+            makeWalls(lastLocation)
         }
 
         endLoc.block.type = Material.LIME_CONCRETE
@@ -73,18 +77,53 @@ object TestGenerateCommand : CommandExecutor {
         return if (this == 0) 1 else 0
     }
 
-    private fun getNewDirection(currentLoc: Location, currentDirection: Int): Int {
+        private fun getAvailableDirections(location: Location) : MutableList<Int> {
 
-        val world = currentLoc.getWorld()!!;
-
+        val world = location.getWorld()!!;
         val availableDirections = mutableListOf<Int>()
 
-        if (world.getBlockAt(currentLoc.blockX + 1, currentLoc.blockY, currentLoc.blockZ).type.isAir) availableDirections.add(0)
-        if (world.getBlockAt(currentLoc.blockX, currentLoc.blockY, currentLoc.blockZ + 1).type.isAir) availableDirections.add(1)
-        if (world.getBlockAt(currentLoc.blockX - 1, currentLoc.blockY, currentLoc.blockZ).type.isAir) availableDirections.add(2)
-        if (world.getBlockAt(currentLoc.blockX, currentLoc.blockY, currentLoc.blockZ + 1).type.isAir) availableDirections.add(3)
+        val loc0 = location.clone().add(1.0, 0.0, 0.0)
+        val loc1 = location.clone().add(0.0, 0.0, 1.0)
+        val loc2 = location.clone().add(-1.0, 0.0, 0.0)
+        val loc3 = location.clone().add(0.0, 0.0, -1.0)
+        if (world.getBlockAt(loc0).type.isAir) availableDirections.add(0)
+        if (world.getBlockAt(loc1).type.isAir) availableDirections.add(1)
+        if (world.getBlockAt(loc2).type.isAir) availableDirections.add(2)
+        if (world.getBlockAt(loc3).type.isAir) availableDirections.add(3)
 
-        return if (Math.random() > 0.3) currentDirection else availableDirections.random()
+        return availableDirections
+
+    }
+
+    private fun getLocationInDirection(location: Location, direction: Int) : Location {
+        return when (direction) {
+            0 -> location.clone().add(1.0, 0.0, 0.0)
+            1 -> location.clone().add(0.0, 0.0, 1.0)
+            2 -> location.clone().add(-1.0, 0.0, 0.0)
+            3 -> location.clone().add(0.0, 0.0, -1.0)
+            else -> location // this should never happen
+        }
+    }
+
+    private fun getNewDirection(currentLoc: Location, currentDirection: Int): Int {
+        val availableDirections = getAvailableDirections(currentLoc)
+        if (availableDirections.size > 1) availableDirections.remove(currentDirection)
+        return if (availableDirections.contains(currentDirection) && Math.random() > 0.3) currentDirection else availableDirections.random()
+    }
+
+    private fun getNewPosition(currentLoc: Location, currentDirection: Int) : Pair<Location, Int> {
+        val newDirection = getNewDirection(currentLoc, currentDirection)
+        val newLocation = getLocationInDirection(currentLoc, newDirection)
+        return Pair(newLocation, newDirection)
+    }
+
+    private fun makeWalls(location: Location) {
+        val world = location.world ?: return
+        val availableDirections = getAvailableDirections(location)
+        for (direction in availableDirections) {
+            val newLoc = getLocationInDirection(location, direction)
+            world.getBlockAt(newLoc).type = Material.RED_CONCRETE
+        }
     }
 
 }
